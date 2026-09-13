@@ -29,6 +29,30 @@ const projects = [
 
 const skills = ['JavaScript', 'React', 'Redux', 'TypeScript', 'Next.js', 'Node.js', 'Express', 'GenAI', 'Python', 'FastAPI', 'SQL', 'MongoDB', 'DSA', 'Docker', 'Jenkins', 'AWS', 'GCP', 'RAG', 'Vector databases', 'Embeddings', 'LangChain', 'MCP', 'AI agents'];
 
+const heroModes = [
+  { prompt: 'whoami', title: 'I’m a dev', accent: 'who ships.' },
+  { prompt: 'npm run vibe', title: 'I build', accent: 'the weird stuff.' },
+  { prompt: 'git status', title: 'always', accent: 'shipping.' },
+];
+
+const skillDetails: Record<string, { note: string; use: string; signal: string }> = {
+  TypeScript: { note: 'The default setting for turning fuzzy ideas into interfaces that behave.', use: 'product systems', signal: 'strict, expressive, ship-ready' },
+  React: { note: 'For interfaces with enough personality to deserve a second look.', use: 'sharp interfaces', signal: 'component brain online' },
+  'Node.js': { note: 'Where the useful plumbing happens: APIs, workers, queues and all the glue.', use: 'backend systems', signal: 'event loop: caffeinated' },
+  FastAPI: { note: 'A fast lane for shipping AI and data-heavy services without the ceremony.', use: 'AI services', signal: 'latency stays low' },
+  GenAI: { note: 'Not just prompting — building the guardrails, evals and product loops around it.', use: 'agentic products', signal: 'context window: focused' },
+  Python: { note: 'The language of choice when the idea needs to become a useful experiment quickly.', use: 'models + tooling', signal: 'prototype mode: on' },
+  'Next.js': { note: 'Full-stack product surfaces with the sharp edges sanded down.', use: 'web products', signal: 'server + client sync' },
+  LangChain: { note: 'Prompt orchestration, skill graphs and the connective tissue between agents.', use: 'LLM workflows', signal: 'chains are linked' },
+};
+
+const getSkillDetails = (skill: string) =>
+  skillDetails[skill] ?? {
+    note: `${skill} is one of the tools in Ayush’s everyday problem-solving kit.`,
+    use: 'shipping software',
+    signal: 'loaded into the toolkit',
+  };
+
 const answerFor = (raw: string) => {
   const command = raw.trim().toLowerCase();
   if (!command) return 'Try a command. The short list is above — or ask me who Ayush is.';
@@ -91,11 +115,16 @@ function Terminal() {
 }
 
 function Home() {
+  const [heroMode, setHeroMode] = useState(0);
+  const [activeSkill, setActiveSkill] = useState('TypeScript');
+  const currentHero = heroModes[heroMode];
+  const currentSkill = getSkillDetails(activeSkill);
+
   return (
     <main className="app-shell">
       <div className="grain" />
       <header className="topbar">
-        <a href="#top" className="mark" data-testid="link-home"><span className="mark-dot" /> AYUSH / MISHRA</a>
+        <a href="#top" className="mark" data-testid="link-home"><span className="mark-dot" /> AYUSH MISHRA</a>
         <nav className="topnav" aria-label="Main navigation">
           <a href="#work" data-testid="link-work">work</a>
           <a href="#experience" data-testid="link-experience">experience</a>
@@ -108,7 +137,17 @@ function Home() {
       <section className="hero" id="top">
         <div className="hero-copy">
           <div className="eyebrow reveal">software developer / new delhi / 2025—now</div>
-          <h1 className="reveal delay-1">I make<br /><span className="line-two">systems think.</span></h1>
+          <button
+            className="hero-mode reveal delay-1"
+            type="button"
+            onClick={() => setHeroMode((mode) => (mode + 1) % heroModes.length)}
+            aria-label="Change the hero mode"
+            data-testid="button-hero-mode"
+          >
+            <span className="hero-mode-prompt">$ {currentHero.prompt}</span>
+            <span className="hero-mode-result">click to recompile <span>{heroMode + 1}/3</span></span>
+          </button>
+          <h1 className="reveal delay-1" key={currentHero.prompt}>{currentHero.title}<br /><span className="line-two">{currentHero.accent}<i className="terminal-caret" aria-hidden="true" /></span></h1>
           <div className="hero-intro reveal delay-2">
             <p>Ayush Mishra builds <strong>product software with a point of view</strong> — from sharp interfaces to cloud systems and agentic AI that knows when to show its work.</p>
             <div className="hero-meta"><b>currently</b><br />Shipping end-to-end features at Recruiting Monk.<br /><br /><b>elsewhere</b><br />Reading docs, drawing flows, chasing the clean abstraction.</div>
@@ -171,7 +210,36 @@ function Home() {
           <div><div className="section-kicker">04 / the toolbox</div><h2>Good with<br />the whole stack.</h2></div>
           <p className="section-note">The tool matters less than the question it helps answer. These are the ones I reach for often.</p>
         </div>
-        <div className="skill-cloud">{skills.map((skill) => <span className="skill" key={skill} data-testid={`skill-${skill.toLowerCase().replaceAll(' ', '-')}`}>{skill}</span>)}</div>
+        <div className="skill-cloud" aria-label="Interactive technology stack">
+          {skills.map((skill) => (
+            <button
+              className={`skill ${activeSkill === skill ? 'is-active' : ''}`}
+              key={skill}
+              type="button"
+              aria-pressed={activeSkill === skill}
+              onClick={() => setActiveSkill(skill)}
+              data-testid={`skill-${skill.toLowerCase().replaceAll(' ', '-')}`}
+            >
+              {skill}
+            </button>
+          ))}
+        </div>
+        <div className="skill-playground reveal" aria-live="polite">
+          <div className="stack-terminal">
+            <div className="stack-console-line"><span>$</span> focus --on <strong>{activeSkill.toLowerCase().replaceAll(' ', '-')}</strong></div>
+            <div className="stack-focus">
+              <span>currently into</span>
+              <h3>{activeSkill}</h3>
+              <p>{currentSkill.note}</p>
+            </div>
+            <div className="stack-console-line stack-signal-line"><span>signal</span> {currentSkill.signal}</div>
+          </div>
+          <div className="stack-use">
+            <span>best used for</span>
+            <strong>{currentSkill.use}</strong>
+            <span className="stack-pulse" aria-hidden="true" />
+          </div>
+        </div>
         <div className="education">
           <div><div className="section-kicker">education / 2021—2025</div><h3>B.Tech Computer Science</h3><p>GNIT, IPU · graduated June 2025</p></div>
           <div className="education-stat">8.7<small>CGPA / out of 10</small></div>
@@ -186,7 +254,7 @@ function Home() {
           <div className="contact-details"><div><MapPin size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} /> New Delhi, India</div><a href="https://github.com/Ayushm19" target="_blank" rel="noreferrer" data-testid="link-github"><Github size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />github.com/Ayushm19</a></div>
         </div>
       </section>
-      <footer className="footer"><span>AYUSH / MISHRA</span><span>made with curiosity · 2025</span></footer>
+      <footer className="footer"><span>AYUSH MISHRA</span><span>made with curiosity · 2025</span></footer>
     </main>
   );
 }
