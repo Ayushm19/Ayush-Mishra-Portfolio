@@ -143,7 +143,11 @@ function Home() {
     const headline = heroHeadlineRef.current;
     if (!headline) return;
     headline.replaceChildren();
-    headline.append(document.createTextNode(currentHero.title));
+    headline.classList.remove('is-custom');
+    const title = document.createElement('span');
+    title.className = 'line-one';
+    title.append(document.createTextNode(currentHero.title));
+    headline.append(title);
     headline.append(document.createElement('br'));
     const accent = document.createElement('span');
     accent.className = 'line-two';
@@ -188,6 +192,7 @@ function Home() {
             contentEditable
             suppressContentEditableWarning
             spellCheck={false}
+            onInput={(event) => event.currentTarget.classList.add('is-custom')}
             role="textbox"
             aria-label="Editable hero headline. Click and type your own headline."
             data-testid="hero-headline-editor"
