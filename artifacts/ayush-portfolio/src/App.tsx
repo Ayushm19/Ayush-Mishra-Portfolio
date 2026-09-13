@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUpRight, Github, Mail, MapPin, Send } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ArrowDown, ArrowUpRight, Bot, Github, MapPin, Send } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { askAyush } from '@/lib/ask-ayush';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -71,93 +72,199 @@ const getSkillDetails = (skill: string) =>
     signal: 'loaded into the toolkit',
   };
 
-const answerFor = (raw: string) => {
-  const command = raw.trim().toLowerCase();
-  if (!command) return 'Try a command. The short list is above — or ask me who Ayush is.';
-  if (command.includes('help') || command === '?') return 'Try: about, work, skills, experience, location, contact, or a question like “what does Ayush build?”';
-  if (command.includes('skill')) return 'Ayush works across TypeScript, React, Next.js, Node, FastAPI, cloud systems, RAG, vector databases, embeddings, LangChain, MCP and agentic AI.';
-  if (command.includes('work') || command.includes('project') || command.includes('build')) return 'Two recent builds: a seven-agent resume ranking workbench and Welth, a collaborative finance product with server actions, recurring transactions and receipt parsing.';
-  if (command.includes('experience') || command.includes('job')) return 'Software Developer at Recruiting Monk (Jul 2025–Aug 2026), after a Cloud Engineer internship at Cloud Edge Technology (Jan–Jun 2025).';
-  if (command.includes('where') || command.includes('location')) return 'New Delhi, India. Remote-friendly, internet-native, usually somewhere between a terminal and a diagram.';
-  if (command.includes('contact') || command.includes('email') || command.includes('hire')) return 'Write to knandan400@gmail.com. For code, find Ayushm19 on GitHub.';
-  if (command.includes('about') || command.includes('who') || command.includes('ayush')) return 'Ayush Mishra is a software developer who turns messy product ideas into reliable systems — then gives the systems a little personality.';
-  return 'I know Ayush’s work, stack, experience, location and contact details. Ask one of those, or type “help”.';
-};
-
 function Terminal() {
   const [history, setHistory] = useState<{ command: string; answer: string }[]>([
     { command: 'whoami', answer: 'Ayush Mishra — software developer, systems thinker, New Delhi.' },
     { command: 'status', answer: 'building thoughtful software across product, cloud and agentic AI.' },
   ]);
   const [input, setInput] = useState('');
+  const [pending, setPending] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const pane = scrollRef.current;
+    if (!pane) return;
+    pane.scrollTo({ top: pane.scrollHeight, behavior: 'smooth' });
+  }, [history, pending]);
+
+  const ask = async (command: string) => {
+    const question = command.trim();
+    if (!question || pending) return;
+    setPending(true);
+    setHistory((items) => [...items, { command: question, answer: 'thinking…' }]);
+    try {
+      const answer = await askAyush(question, history);
+      setHistory((items) => {
+        const next = [...items];
+        next[next.length - 1] = { command: question, answer };
+        return next;
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The host went quiet.';
+      setHistory((items) => {
+        const next = [...items];
+        next[next.length - 1] = { command: question, answer: message };
+        return next;
+      });
+    } finally {
+      setPending(false);
+    }
+  };
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const command = input.trim();
     if (!command) return;
-    setHistory((items) => [...items, { command, answer: answerFor(command) }]);
     setInput('');
-  };
-
-  const run = (command: string) => {
-    setHistory((items) => [...items, { command, answer: answerFor(command) }]);
+    void ask(command);
   };
 
   return (
     <div className="terminal-wrap reveal">
       <div className="terminal" data-testid="terminal-console">
         <div className="terminal-head"><i className="term-dot" /><i className="term-dot" /><i className="term-dot" /><span style={{ marginLeft: 7 }}>ayush@local — /curiosity</span></div>
-        <div className="terminal-body">
-          {history.map((item, index) => (
-            <div key={`${item.command}-${index}`}>
-              <div className="terminal-line">$ <span>{item.command}</span></div>
-              <div className="terminal-answer">{item.answer}</div>
-            </div>
-          ))}
-          <form className="term-form" onSubmit={submit}>
-            <label htmlFor="terminal-input" className="terminal-line">$</label>
-            <input id="terminal-input" data-testid="input-terminal-command" value={input} onChange={(event) => setInput(event.target.value)} placeholder="ask me something..." autoComplete="off" />
-            <button type="submit" data-testid="button-terminal-submit"><Send size={14} /></button>
-          </form>
+        <div className="terminal-body" ref={scrollRef}>
+          {history.map((item, index) => {
+            const waiting = pending && index === history.length - 1;
+            return (
+              <div key={`${item.command}-${index}`}>
+                <div className="terminal-line">$ <span>{item.command}</span></div>
+                <div className={`terminal-answer${waiting ? ' is-pending' : ''}`}>{item.answer}</div>
+              </div>
+            );
+          })}
         </div>
+        <form className="term-form" onSubmit={submit}>
+          <label htmlFor="terminal-input" className="terminal-line">$</label>
+          <input id="terminal-input" data-testid="input-terminal-command" value={input} onChange={(event) => setInput(event.target.value)} placeholder="ask me something..." autoComplete="off" disabled={pending} />
+          <button type="submit" data-testid="button-terminal-submit" disabled={pending}><Send size={14} /></button>
+        </form>
       </div>
       <aside className="terminal-aside">
-        <strong>Ask the small world.</strong>
-        No API, no loading state, no pretend AI. Just a tiny local map of what Ayush makes and how he thinks.
+        <strong>Ask the host.</strong>
+        Who is Ayush, why hire him, what he has shipped. Off-topic questions get roasted.
         <div className="command-list" aria-label="Suggested commands">
-          {['about', 'work', 'skills', 'contact'].map((command) => <button key={command} type="button" data-testid={`button-command-${command}`} onClick={() => run(command)}>{command}</button>)}
+          {['who is ayush', 'why hire him', 'projects', 'experience'].map((command) => (
+            <button key={command} type="button" data-testid={`button-command-${command.replaceAll(' ', '-')}`} onClick={() => void ask(command)} disabled={pending}>{command}</button>
+          ))}
         </div>
       </aside>
     </div>
   );
 }
 
+function isTextField(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest('input, textarea, select'));
+}
+
+function firstLineBreakIndex(host: HTMLElement, text: string) {
+  const newline = text.indexOf('\n');
+  const sample = newline === -1 ? text : text.slice(0, newline);
+  if (!sample) return 0;
+
+  const probe = document.createElement('span');
+  const style = getComputedStyle(host);
+  probe.style.cssText = [
+    'position:absolute',
+    'left:-9999px',
+    'top:0',
+    'visibility:hidden',
+    'pointer-events:none',
+    'white-space:pre-wrap',
+    `font:${style.font}`,
+    `letter-spacing:${style.letterSpacing}`,
+    `line-height:${style.lineHeight}`,
+    `width:${Math.max(host.clientWidth, 1)}px`,
+  ].join(';');
+  probe.textContent = sample;
+  document.body.appendChild(probe);
+
+  const node = probe.firstChild;
+  let wrapAt = sample.length;
+  if (node) {
+    const range = document.createRange();
+    let firstBottom: number | null = null;
+    for (let i = 0; i < sample.length; i += 1) {
+      range.setStart(node, i);
+      range.setEnd(node, i + 1);
+      const rect = range.getBoundingClientRect();
+      if (firstBottom === null) firstBottom = rect.bottom;
+      else if (rect.top > firstBottom - 1) {
+        wrapAt = i;
+        break;
+      }
+    }
+  }
+  probe.remove();
+  return newline !== -1 && wrapAt >= sample.length ? newline : wrapAt;
+}
+
 function Home() {
   const [heroMode, setHeroMode] = useState(0);
+  const [customHeadline, setCustomHeadline] = useState<string | null>(null);
   const [activeSkill, setActiveSkill] = useState('TypeScript');
+  const [heroTextVisible, setHeroTextVisible] = useState(true);
+  const [lineSplit, setLineSplit] = useState(0);
   const heroHeadlineRef = useRef<HTMLHeadingElement>(null);
   const currentHero = heroModes[heroMode];
   const currentSkill = getSkillDetails(activeSkill);
+  const customFirst = customHeadline === null ? '' : customHeadline.slice(0, lineSplit);
+  const customRest = customHeadline === null ? '' : customHeadline.slice(lineSplit).replace(/^\n/, '');
 
   useEffect(() => {
     const headline = heroHeadlineRef.current;
     if (!headline) return;
-    headline.replaceChildren();
-    headline.classList.remove('is-custom');
-    const title = document.createElement('span');
-    title.className = 'line-one';
-    title.append(document.createTextNode(currentHero.title));
-    headline.append(title);
-    headline.append(document.createElement('br'));
-    const accent = document.createElement('span');
-    accent.className = 'line-two';
-    accent.append(document.createTextNode(currentHero.accent));
-    const caret = document.createElement('i');
-    caret.className = 'terminal-caret';
-    caret.setAttribute('aria-hidden', 'true');
-    accent.append(caret);
-    headline.append(accent);
-  }, [heroMode, currentHero.accent, currentHero.title]);
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroTextVisible(entry.isIntersecting),
+      { threshold: 0.15 },
+    );
+    observer.observe(headline);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!heroTextVisible) return;
+    const preset = `${currentHero.title}\n${currentHero.accent}`;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isTextField(event.target)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+      if (event.key === 'Backspace' || event.key === 'Delete') {
+        event.preventDefault();
+        setCustomHeadline((text) => (text ?? preset).slice(0, -1));
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        setCustomHeadline((text) => `${text ?? preset}\n`);
+        return;
+      }
+
+      if (event.key.length !== 1) return;
+      event.preventDefault();
+      setCustomHeadline((text) => `${text ?? preset}${event.key}`);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [heroTextVisible, currentHero.accent, currentHero.title]);
+
+  useLayoutEffect(() => {
+    const host = heroHeadlineRef.current;
+    if (!host || customHeadline === null) {
+      setLineSplit(0);
+      return;
+    }
+
+    const measure = () => setLineSplit(firstLineBreakIndex(host, customHeadline));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [customHeadline]);
 
   return (
     <main className="app-shell">
@@ -170,16 +277,34 @@ function Home() {
           <a href="#stack" data-testid="link-stack">stack</a>
           <a href="#contact" data-testid="link-contact">contact</a>
         </nav>
-        <div className="availability"><span className="pulse" /> open to good problems</div>
+        <div className="topbar-end">
+          <a
+            className="bot-button"
+            href="#curiosity"
+            data-testid="link-bot"
+            onClick={(event) => {
+              event.preventDefault();
+              document.getElementById('curiosity')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              window.setTimeout(() => document.getElementById('terminal-input')?.focus(), 450);
+            }}
+          >
+            <Bot size={14} />
+            bot
+          </a>
+          <div className="availability"><span className="pulse" /> open to good problems</div>
+        </div>
       </header>
 
       <section className="hero" id="top">
         <div className="hero-copy">
-          <div className="eyebrow reveal">software developer / new delhi / 2025—now</div>
+          <div className="eyebrow reveal">software developer / new delhi / <a href="mailto:knandan400@gmail.com">knandan400@gmail.com</a></div>
           <button
             className="hero-mode reveal delay-1"
             type="button"
-            onClick={() => setHeroMode((mode) => (mode + 1) % heroModes.length)}
+            onClick={() => {
+              setCustomHeadline(null);
+              setHeroMode((mode) => (mode + 1) % heroModes.length);
+            }}
             aria-label="Change the hero mode"
             data-testid="button-hero-mode"
           >
@@ -188,22 +313,43 @@ function Home() {
           </button>
           <h1
             ref={heroHeadlineRef}
-            className="hero-headline-editor reveal delay-1"
-            contentEditable
-            suppressContentEditableWarning
+            className={`hero-headline-editor reveal delay-1${customHeadline !== null ? ' is-custom' : ''}`}
             spellCheck={false}
-            onInput={(event) => event.currentTarget.classList.add('is-custom')}
-            role="textbox"
-            aria-label="Editable hero headline. Click and type your own headline."
+            aria-label="Hero headline. Type or press Backspace to rewrite while this section is on screen."
             data-testid="hero-headline-editor"
-            title="Click to edit · Backspace to rewrite · refresh to reset"
-          />
-          <div className="hero-edit-note reveal delay-2">click the headline · backspace to rewrite · refresh to reset</div>
+            title="Type to write · Backspace to erase · refresh to reset"
+          >
+            {customHeadline === null ? (
+              <>
+                <span className="line-one">{currentHero.title}</span>
+                <br />
+                <span className="line-two">
+                  {currentHero.accent}
+                  <i className="terminal-caret" aria-hidden="true" />
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="line-one">
+                  {customFirst}
+                  {!customRest ? <i className="terminal-caret" aria-hidden="true" /> : null}
+                </span>
+                {customRest ? (
+                  <span className="line-two">
+                    {customRest}
+                    <i className="terminal-caret" aria-hidden="true" />
+                  </span>
+                ) : null}
+              </>
+            )}
+          </h1>
+          <div className="hero-edit-note reveal delay-2">just type · backspace to erase · refresh to reset</div>
           <div className="hero-intro reveal delay-2">
             <p>Ayush Mishra builds <strong>product software with a point of view</strong> — from sharp interfaces to cloud systems and agentic AI that knows when to show its work.</p>
             <div className="hero-meta"><b>currently</b><br />Shipping end-to-end features at Recruiting Monk.<br /><br /><b>elsewhere</b><br />Reading docs, drawing flows, chasing the clean abstraction.</div>
           </div>
         </div>
+        <img className="hero-photo" src={`${import.meta.env.BASE_URL}ayush.jpg`} alt="Ayush Mishra" />
         <div className="scribble" aria-hidden="true">nice to meet you</div>
         <a href="#curiosity" className="scroll-cue" data-testid="link-scroll-cue"><span className="scroll-line" /> scroll / poke around <ArrowDown size={14} /></a>
       </section>
@@ -213,7 +359,7 @@ function Home() {
       <section className="section" id="curiosity">
         <div className="section-head">
           <div><div className="section-kicker">01 / curious?</div><h2>Talk to the<br />portfolio.</h2></div>
-          <p className="section-note">A little command line for the things that do not fit neatly in a bio. Type a question. I left the backend at home.</p>
+          <p className="section-note">A little command line trained on Ayush’s resume. Ask who he is, why hire him, what he built. Trick questions get a smirk.</p>
         </div>
         <Terminal />
       </section>
