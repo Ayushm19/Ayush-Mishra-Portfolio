@@ -1,0 +1,1 @@
+- [Artifact build environment](vite-build-environment.md) — manual Vite builds need both the workflow port and artifact base path.

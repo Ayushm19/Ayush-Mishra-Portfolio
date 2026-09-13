@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUpRight, Github, Mail, MapPin, Send } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -35,20 +35,38 @@ const heroModes = [
   { prompt: 'git status', title: 'always', accent: 'shipping.' },
 ];
 
-const skillDetails: Record<string, { note: string; use: string; signal: string }> = {
-  TypeScript: { note: 'The default setting for turning fuzzy ideas into interfaces that behave.', use: 'product systems', signal: 'strict, expressive, ship-ready' },
-  React: { note: 'For interfaces with enough personality to deserve a second look.', use: 'sharp interfaces', signal: 'component brain online' },
-  'Node.js': { note: 'Where the useful plumbing happens: APIs, workers, queues and all the glue.', use: 'backend systems', signal: 'event loop: caffeinated' },
-  FastAPI: { note: 'A fast lane for shipping AI and data-heavy services without the ceremony.', use: 'AI services', signal: 'latency stays low' },
-  GenAI: { note: 'Not just prompting — building the guardrails, evals and product loops around it.', use: 'agentic products', signal: 'context window: focused' },
-  Python: { note: 'The language of choice when the idea needs to become a useful experiment quickly.', use: 'models + tooling', signal: 'prototype mode: on' },
-  'Next.js': { note: 'Full-stack product surfaces with the sharp edges sanded down.', use: 'web products', signal: 'server + client sync' },
-  LangChain: { note: 'Prompt orchestration, skill graphs and the connective tissue between agents.', use: 'LLM workflows', signal: 'chains are linked' },
+type SkillDetail = { note: string; evidence: string; use: string; signal: string };
+
+const skillDetails: Record<string, SkillDetail> = {
+  JavaScript: { note: 'Used across the product and service layer whenever an idea needs to become a working interface.', evidence: 'Resume experience: end-to-end product features across frontend and backend systems.', use: 'product features', signal: 'runtime: ready' },
+  React: { note: 'The UI layer for turning product flows into interfaces people can actually use.', evidence: 'Resume project: Welth — Finance Team Collaboration Website.', use: 'product interfaces', signal: 'component brain online' },
+  Redux: { note: 'A fit for shared state when a product has more than one role, flow or live surface.', evidence: 'Resume stack: Redux listed among core frontend tools.', use: 'shared UI state', signal: 'state: in sync' },
+  TypeScript: { note: 'The safety rail for shipping quickly without letting a growing product become guesswork.', evidence: 'Recruiting Monk: Node and Express TypeScript microservices for Company, Admin and Candidate roles.', use: 'microservices', signal: 'strict, expressive, ship-ready' },
+  'Next.js': { note: 'A full-stack product surface for moving from an idea to a deployed experience with fewer seams.', evidence: 'Resume project: Welth — Finance Team Collaboration Website, built with Next.js.', use: 'web products', signal: 'server + client sync' },
+  'Node.js': { note: 'The runtime behind APIs, role-based services and the glue between product systems.', evidence: 'Recruiting Monk: leading features end to end across Node microservices.', use: 'backend systems', signal: 'event loop: caffeinated' },
+  Express: { note: 'A straightforward base for services that need clear routes, boundaries and ownership.', evidence: 'Recruiting Monk: Node and Express TypeScript microservices.', use: 'service APIs', signal: 'routes: accounted for' },
+  GenAI: { note: 'Not just prompting — building the evaluation loops and product context around useful AI.', evidence: 'Recruiting Monk: agentic AI services with model benchmarking.', use: 'agentic products', signal: 'context window: focused' },
+  Python: { note: 'The quick path from an experiment to something that can inspect evidence and produce a useful result.', evidence: 'Resume project: Multi-Agent Resume Ranking, built with Python.', use: 'AI experiments', signal: 'prototype mode: on' },
+  FastAPI: { note: 'A fast lane for shipping AI and data-heavy services without unnecessary ceremony.', evidence: 'Resume project: Multi-Agent Resume Ranking, built with FastAPI.', use: 'AI services', signal: 'latency stays low' },
+  SQL: { note: 'Useful whenever a product needs reliable records, filters and answers that can be audited.', evidence: 'Resume stack: SQL listed among database and data tools.', use: 'structured data', signal: 'queries: composed' },
+  MongoDB: { note: 'A flexible fit for product data that changes as the product and its workflows get clearer.', evidence: 'Resume project: Welth — Finance Team Collaboration Website, built with MongoDB.', use: 'finance data', signal: 'documents: connected' },
+  DSA: { note: 'The fundamentals underneath the systems: choose the right shape before optimizing the surface.', evidence: 'Resume stack: Data Structures and Algorithms listed as a core strength.', use: 'problem solving', signal: 'complexity: considered' },
+  Docker: { note: 'A repeatable boundary for getting services from a laptop to a shared environment.', evidence: 'Resume stack: Docker listed among development and deployment tools.', use: 'repeatable services', signal: 'containers: packed' },
+  Jenkins: { note: 'Automation for the unglamorous steps that keep shipping from depending on memory.', evidence: 'Resume stack: Jenkins listed among CI/CD tools.', use: 'delivery pipelines', signal: 'build: automated' },
+  AWS: { note: 'Cloud fluency for understanding where a service runs, how it scales and what it costs.', evidence: 'Resume stack: AWS listed among cloud platforms.', use: 'cloud systems', signal: 'region: available' },
+  GCP: { note: 'The cloud layer behind services, monitoring and the foundations that make product work possible.', evidence: 'Cloud Edge Technology: worked across GCP, serverless patterns, monitoring and logging.', use: 'cloud foundations', signal: 'telemetry: online' },
+  RAG: { note: 'Give a model the right evidence before asking it to make a useful decision.', evidence: 'Recruiting Monk: vector database, embeddings and a LangChain-powered skill graph.', use: 'grounded AI', signal: 'retrieval: relevant' },
+  'Vector databases': { note: 'A practical memory layer for finding meaning across resumes, skills and product knowledge.', evidence: 'Recruiting Monk: building agentic AI services with a vector database.', use: 'semantic search', signal: 'nearest neighbors: found' },
+  Embeddings: { note: 'Turning text into a shape that systems can compare, retrieve and reason over.', evidence: 'Recruiting Monk: embeddings used in the agentic AI service stack.', use: 'meaningful search', signal: 'vectors: aligned' },
+  LangChain: { note: 'The connective tissue between models, tools, retrieval and a skill graph.', evidence: 'Recruiting Monk: LangChain-powered skill graph.', use: 'LLM workflows', signal: 'chains are linked' },
+  MCP: { note: 'A cleaner way for tools and models to discover the context they need to do useful work.', evidence: 'Resume stack: MCP listed among AI engineering tools.', use: 'tool-connected AI', signal: 'context: discoverable' },
+  'AI agents': { note: 'Small specialists that inspect, challenge and verify evidence before a result lands.', evidence: 'Resume project: Multi-Agent Resume Ranking and Recruiting Monk agentic AI services.', use: 'evidence workflows', signal: 'agents: collaborating' },
 };
 
 const getSkillDetails = (skill: string) =>
   skillDetails[skill] ?? {
     note: `${skill} is one of the tools in Ayush’s everyday problem-solving kit.`,
+    evidence: 'Resume stack: listed among Ayush’s technical tools.',
     use: 'shipping software',
     signal: 'loaded into the toolkit',
   };
@@ -117,8 +135,25 @@ function Terminal() {
 function Home() {
   const [heroMode, setHeroMode] = useState(0);
   const [activeSkill, setActiveSkill] = useState('TypeScript');
+  const heroHeadlineRef = useRef<HTMLHeadingElement>(null);
   const currentHero = heroModes[heroMode];
   const currentSkill = getSkillDetails(activeSkill);
+
+  useEffect(() => {
+    const headline = heroHeadlineRef.current;
+    if (!headline) return;
+    headline.replaceChildren();
+    headline.append(document.createTextNode(currentHero.title));
+    headline.append(document.createElement('br'));
+    const accent = document.createElement('span');
+    accent.className = 'line-two';
+    accent.append(document.createTextNode(currentHero.accent));
+    const caret = document.createElement('i');
+    caret.className = 'terminal-caret';
+    caret.setAttribute('aria-hidden', 'true');
+    accent.append(caret);
+    headline.append(accent);
+  }, [heroMode, currentHero.accent, currentHero.title]);
 
   return (
     <main className="app-shell">
@@ -147,7 +182,18 @@ function Home() {
             <span className="hero-mode-prompt">$ {currentHero.prompt}</span>
             <span className="hero-mode-result">click to recompile <span>{heroMode + 1}/3</span></span>
           </button>
-          <h1 className="reveal delay-1" key={currentHero.prompt}>{currentHero.title}<br /><span className="line-two">{currentHero.accent}<i className="terminal-caret" aria-hidden="true" /></span></h1>
+          <h1
+            ref={heroHeadlineRef}
+            className="hero-headline-editor reveal delay-1"
+            contentEditable
+            suppressContentEditableWarning
+            spellCheck={false}
+            role="textbox"
+            aria-label="Editable hero headline. Click and type your own headline."
+            data-testid="hero-headline-editor"
+            title="Click to edit · Backspace to rewrite · refresh to reset"
+          />
+          <div className="hero-edit-note reveal delay-2">click the headline · backspace to rewrite · refresh to reset</div>
           <div className="hero-intro reveal delay-2">
             <p>Ayush Mishra builds <strong>product software with a point of view</strong> — from sharp interfaces to cloud systems and agentic AI that knows when to show its work.</p>
             <div className="hero-meta"><b>currently</b><br />Shipping end-to-end features at Recruiting Monk.<br /><br /><b>elsewhere</b><br />Reading docs, drawing flows, chasing the clean abstraction.</div>
@@ -218,6 +264,7 @@ function Home() {
               type="button"
               aria-pressed={activeSkill === skill}
               onClick={() => setActiveSkill(skill)}
+              onMouseEnter={() => setActiveSkill(skill)}
               data-testid={`skill-${skill.toLowerCase().replaceAll(' ', '-')}`}
             >
               {skill}
@@ -228,14 +275,15 @@ function Home() {
           <div className="stack-terminal">
             <div className="stack-console-line"><span>$</span> focus --on <strong>{activeSkill.toLowerCase().replaceAll(' ', '-')}</strong></div>
             <div className="stack-focus">
-              <span>currently into</span>
+              <span>resume evidence</span>
               <h3>{activeSkill}</h3>
               <p>{currentSkill.note}</p>
+              <blockquote>{currentSkill.evidence}</blockquote>
             </div>
             <div className="stack-console-line stack-signal-line"><span>signal</span> {currentSkill.signal}</div>
           </div>
           <div className="stack-use">
-            <span>best used for</span>
+            <span>where it ships</span>
             <strong>{currentSkill.use}</strong>
             <span className="stack-pulse" aria-hidden="true" />
           </div>
