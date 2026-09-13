@@ -1,5 +1,7 @@
 import { askGemini } from '../artifacts/ayush-portfolio/src/lib/gemini-ask';
 
+declare const process: { env: Record<string, string | undefined> };
+
 type AskRequest = {
   method?: string;
   body?: {
