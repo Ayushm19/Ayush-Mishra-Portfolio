@@ -1,6 +1,6 @@
 import { AYUSH_SYSTEM_PROMPT } from './ayush-prompt';
 
-const GEMINI_MODEL = 'gemini-3.6-flash';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 export type HistoryItem = { role?: string; text?: string };
 
@@ -25,7 +25,7 @@ export async function askGemini(apiKey: string, message: string, history: Histor
         contents,
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 4096,
+          maxOutputTokens: 1024,
         },
       }),
     },

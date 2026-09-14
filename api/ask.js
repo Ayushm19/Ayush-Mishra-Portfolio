@@ -1,4 +1,4 @@
-const GEMINI_MODEL = 'gemini-3.6-flash';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 const AYUSH_RESUME = `
 AYUSH MISHRA
@@ -87,7 +87,7 @@ async function askGemini(apiKey, message, history = []) {
         contents,
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 4096,
+          maxOutputTokens: 1024,
         },
       }),
     },
