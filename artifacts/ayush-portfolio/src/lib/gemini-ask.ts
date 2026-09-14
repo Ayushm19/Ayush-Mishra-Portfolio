@@ -25,7 +25,7 @@ export async function askGemini(apiKey: string, message: string, history: Histor
         contents,
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 4096,
         },
       }),
     },

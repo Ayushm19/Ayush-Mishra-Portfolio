@@ -87,7 +87,7 @@ async function askGemini(apiKey, message, history = []) {
         contents,
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 4096,
         },
       }),
     },
